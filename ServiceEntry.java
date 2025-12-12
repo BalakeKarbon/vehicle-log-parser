@@ -1,4 +1,5 @@
 import java.util.HashSet;
+import java.time.LocalDate;
 
 class ServiceEntry extends LogEntry {
 	protected String description;
@@ -10,7 +11,7 @@ class ServiceEntry extends LogEntry {
 	}
 	protected HashSet<ServiceType> services;
 	private static final EntryType TYPE = EntryType.SERVICE;
-	public ServiceEntry(localDate entryDate) {
+	public ServiceEntry(LocalDate entryDate) {
 		super(TYPE, entryDate);
 	}
 }

@@ -1,3 +1,5 @@
+import java.time.LocalDate;
+
 class FuelEntry extends LogEntry {
 	protected float cost, volume;
 	private static final EntryType TYPE = EntryType.FUEL;

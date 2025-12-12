@@ -1,4 +1,10 @@
+/*
+Just some notes regarding this program. With the variablility in spelling and all sorts of other things I think the application of a simple feed forward neural network might be better and easier. That is not used here due to program requirements.
+*/
+
 import java.util.Scanner;
+import java.util.List;
+import java.util.ArrayList;
 //import java.io.BufferedReader;
 //import java.io.FileReader;
 //import java.io.FileWriter;
@@ -24,12 +30,13 @@ class VehicleLogParser {
 	// Perhaps a mode to create a key file by asking the user line by line what something means?
 	// Allow user intervention when a line cannot be parsed! In such case add to key file perhaps?
 	// Do we support complex patterns???? wb regex? (yes)
-	public static HashMap keyMap;
-	public static VehicleLog parsedLog;
+	public static HashMap<String, LogEntry.EntryType> typeMap;
+	public static HashMap<String, LogDestination> locationMap;
+	public static List<LogEntry> VehicleLog = new ArrayList<>();
 	public static boolean validateKeyFile(String path) {
 		try (Stream<String> stream = Files.lines(Paths.get(path))) {
 			for(String line : (Iterable<String>) stream::iterator) {
-				//String data[] = line.split(',');
+				String data[] = line.split(",");
 				//String 
 				System.out.println(line);
 			}
@@ -103,8 +110,14 @@ class VehicleLogParser {
 		String logFilePath, keyFilePath, outputFilePath;
 		boolean keyValidated = false;
 		boolean logParsed = false;
+		Scanner scnr = new Scanner(System.in);
 		if(args.length >= 1) {
 			keyFilePath = args[0];
+			keyValidated = validateKeyFile(keyFilePath);
+		}
+		while(!keyValidated) {
+			System.out.print("Enter Key File Path: ");
+			keyFilePath = scnr.nextLine();
 			keyValidated = validateKeyFile(keyFilePath);
 		}
 		if(args.length >= 2) {
@@ -113,12 +126,6 @@ class VehicleLogParser {
 		}
 		if(args.length >= 3) {
 			outputFilePath = args[2];
-		}
-		Scanner scnr = new Scanner(System.in);
-		while(!keyValidated) {
-			System.out.print("Enter Key File Path: ");
-			keyFilePath = scnr.nextLine();
-			keyValidated = validateKeyFile(keyFilePath);
 		}
 		while(!logParsed) {
 			System.out.print("Enter Log File Path: ");

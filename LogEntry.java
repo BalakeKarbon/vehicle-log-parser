@@ -2,10 +2,10 @@ import java.time.LocalDate;
 
 class LogEntry {
 	public enum EntryType {
-		DESTINATION
-		FUEL
-		SERVICE
-		ODOMETER
+		DESTINATION,
+		FUEL,
+		SERVICE,
+		ODOMETER;
 	}
 	protected LocalDate eventDate;
 	public final EntryType type;
