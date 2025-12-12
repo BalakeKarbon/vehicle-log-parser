@@ -7,7 +7,7 @@ public class LogEntry {
 		SERVICE,
 		ODOMETER;
 	}
-	public static final EntryType TypePriority[] = {EntryType.DESTINATION,EntryType.FUEL,EntryType.SERVICE,EntryType.ODOMETER};
+	//public static final EntryType TypePriority[] = {EntryType.DESTINATION,EntryType.FUEL,EntryType.SERVICE,EntryType.ODOMETER};
 	protected LocalDate eventDate;
 	public final EntryType type;
 	public LogEntry(EntryType type, LocalDate eventDate) { // If we dont ever use this make it protected.

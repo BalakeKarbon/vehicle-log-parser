@@ -36,6 +36,16 @@ class VehicleLogParser {
 	public static Map<String, LogEntry.EntryType> typeMap;
 	public static Map<String, LogDestination> locationMap;
 	public static List<LogEntry> VehicleLog = new ArrayList<>();
+	/*
+	Keyfile Notess:
+	So the top 4 lines go:
+	destination words
+	fuel words
+	service words
+	odometer words
+	
+	then the following lines are location word pairs and such. These are prioritiezed from top to bottom to my understanding with .values() from the hash map but I am not entirely sure, testing required.
+	*/
 	public static boolean validateKeyFile(String path) {
 		try (Stream<String> stream = Files.lines(Paths.get(path))) {
 			List<String> lines = stream.collect(Collectors.toList());
@@ -111,15 +121,16 @@ class VehicleLogParser {
 		}
 		return true;
 	}
-	public static logEntry parseLine(LogEntry.EntryType type, String line) throws CustomException? {
+	//public static logEntry parseLine(LogEntry.EntryType type, String line) throws CustomException? {
 
-	}
+	//}
 	public static boolean parseLog(String path) {
 		Pattern datePattern = Pattern.compile("^(\\d{1,2}[./-]\\d{1,2}[./-](?:\\d{4})).*");
 		Matcher m;
 		String dateParts[];
 		int month,day,year;
-		Map<LogEntry.EntryType, Integer> scores = new HashMap<>();
+		Map<LogEntry.EntryType, Integer> typeScores = new HashMap<>();
+		Map<LogDestination, Integer> destinationScores = new HashMap<>();
 		LocalDate currentDate = null;
 		boolean lineParsed;
 		try (Stream<String> stream = Files.lines(Paths.get(path))) {
@@ -155,43 +166,70 @@ class VehicleLogParser {
 				} else {
 					if(currentDate != null) {
 						for(LogEntry.EntryType type : LogEntry.EntryType.values()) { // Advanced loop through an enum wow
-							if(type == LogEntry.EntryType.DESTINATION) {
-								scores.put(type, 1); // Destination gets a bias as we want that to be default
-							} else {
-								scores.put(type, 0); // Zero out all of our types. Oo automoxing
-							}
+							//if(type == LogEntry.EntryType.DESTINATION) {
+							//	typeScores.put(type, 1); // Destination gets a bias as we want that to be default
+							//} else {
+							//	typeScores.put(type, 0); // Zero out all of our types. Oo automoxing
+							//}
+							typeScores.put(type, 0); // Zero out all of our types. Oo automoxing
 						}
 						lineParsed = false;
-						// I use 4 integers for the scores instead of a HashMap because it makes me sleep better. I know we have all the ram in the world but still it tastes bad to allocate HashMap space for 4 integers just to make key-value ease.
+						// I use 4 integers for the typeScores instead of a HashMap because it makes me sleep better. I know we have all the ram in the world but still it tastes bad to allocate HashMap space for 4 integers just to make key-value ease.
 						//Actually I think I change my mind.
 						// Go throuhg each word in the line and if it has a majority character match with anything in our key file then tally it for that category, majority catigory wins.
 						for(String word : line.split(" ")) {
 							if(typeMap.containsKey(word)) {
-								scores.merge(typeMap.get(word), 1, Integer::sum);
+								typeScores.merge(typeMap.get(word), 1, Integer::sum);
 							}
 						}
-						while(scores.size()>0) {
-							int maxValue = Collections.max(scores.values());
-							List<LogEntry.EntryType> bestKeys = scores.entrySet().stream()
+						while(typeScores.size()>0) {
+							int maxValue = Collections.max(typeScores.values());
+							List<LogEntry.EntryType> bestKeys = typeScores.entrySet().stream()
 								.filter(e -> e.getValue() == maxValue)
 								.map(Map.Entry::getKey)
 								.collect(Collectors.toList());
 							for(LogEntry.EntryType key : bestKeys) { // Here we remove the best keys in case we must loop again to next best options
-								scores.remove(key); // Remove for next loop to go to next best options if still no parse
+								typeScores.remove(key); // Remove for next loop to go to next best options if still no parse
 							}
 							//HERE WE MUST LOOP THROUGH BESTKEYS IN PRIORITY ORDER ATTEMPTINT TO PARSE!!!!
-							for(LogEntry.EntryType type : LogEntry.TypePriority) {
-								if(bestKeys.contains(type)) {
-									// Attempt to parse!
-									try {
-										parseLine(type,line) // Use generic here
-										scores.clear();
-										break;
-									} catch ( Custom Exception? ) {
-										//
-									}
-								}
+							// Attempt to parse!
+							if(bestKeys.contains(LogEntry.EntryType.DESTINATION)) { // We dont need !lineParsed && here because this is just for priority checking time save
+								// Attempt to parse DESTINATION
+								// Potentially another scoring system for locations???
 							}
+							if (!lineParsed && bestKeys.contains(LogEntry.EntryType.FUEL)) {
+								// Attempt to parse FUEL
+								// Find price and volume numbers plus station location?
+							}
+							if (!lineParsed && bestKeys.contains(LogEntry.EntryType.SERVICE)) {
+								// Attempt to parse SERVICE
+								// Determine what services were perfomed
+							}
+							if (!lineParsed && bestKeys.contains(LogEntry.EntryType.ODOMETER)) {
+								// Attempt to parse ODOMETER
+								// Find long number
+							}
+							//for(LogEntry.EntryType type : LogEntry.TypePriority) {
+							//	if(bestKeys.contains(type)) {
+							//		switch(type) {
+							//			case LogEntry.EntryType.DESTINATION:
+							//				break;
+							//			case LogEntry.EntryType.FUEL:
+							//				break;
+							//			case LogEntry.EntryType.SERVICE:
+							//				break;
+							//			case LogEntry.EntryType.ODOMETER:
+							//				break;
+							//		}
+							//		//try {
+							//		//	parseLine(type,line) // Use generic here
+							//		//	typeScores.clear();
+							//		//	break;
+							//		//} catch ( Custom Exception? ) {
+							//		//	//
+							//		//}
+							//	}
+							//}
 							// IF PARSING WORKS THEN BREAK HERE OTHERWISE CONTINUE AND LOOP!
 							// IE: parse, if works set lineParsed = true, then set parseOption to false or break to exit loop.
 							
