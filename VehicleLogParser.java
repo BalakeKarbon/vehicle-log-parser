@@ -13,8 +13,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
 //import java.io.PrintWriter;
+import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.util.Map;
 import java.util.HashMap;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -30,15 +32,65 @@ class VehicleLogParser {
 	// Perhaps a mode to create a key file by asking the user line by line what something means?
 	// Allow user intervention when a line cannot be parsed! In such case add to key file perhaps?
 	// Do we support complex patterns???? wb regex? (yes)
-	public static HashMap<String, LogEntry.EntryType> typeMap;
-	public static HashMap<String, LogDestination> locationMap;
+	public static Map<String, LogEntry.EntryType> typeMap;
+	public static Map<String, LogDestination> locationMap;
 	public static List<LogEntry> VehicleLog = new ArrayList<>();
 	public static boolean validateKeyFile(String path) {
 		try (Stream<String> stream = Files.lines(Paths.get(path))) {
-			for(String line : (Iterable<String>) stream::iterator) {
-				String data[] = line.split(",");
-				//String 
-				System.out.println(line);
+			List<String> lines = stream.collect(Collectors.toList());
+			String words[];
+			typeMap = new HashMap<>();
+			locationMap = new HashMap<>();
+			for(int lineIndex = 0;lineIndex<lines.size();lineIndex++) {
+				words = lines.get(lineIndex).split(",");
+				switch(lineIndex) {
+					case 0:
+						// Destination
+						for(String word : words) {
+							typeMap.put(word, LogEntry.EntryType.DESTINATION);
+						}
+						break;
+					case 1:
+						// Fuel
+						for(String word : words) {
+							typeMap.put(word, LogEntry.EntryType.FUEL);
+						}
+						break;
+					case 2:
+						// Service
+						for(String word : words) {
+							typeMap.put(word, LogEntry.EntryType.SERVICE);
+						}
+						break;
+					case 3:
+						// Odometer
+						for(String word : words) {
+							typeMap.put(word, LogEntry.EntryType.ODOMETER);
+						}
+						break;
+					default:
+						for(int wordIndex = 0;wordIndex<words.length;wordIndex++) {
+							String title = null;
+							String description = null;
+							List<String> keys = new ArrayList<>();
+							switch(wordIndex) {
+								case 0:
+									title = words[wordIndex];
+									break;
+								case 1:
+									description = words[wordIndex];
+									break;
+								default:
+									keys.add(words[wordIndex]);
+									break;
+							}
+							LogDestination newDestination = new LogDestination(title,description);
+							for(String key : keys) {
+								locationMap.put(key, newDestination);
+							}
+						}
+						break;
+				}
 			}
 		} catch (IOException e) {
 			System.err.println("Error reading file: " + e.getMessage());

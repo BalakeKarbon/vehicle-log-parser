@@ -1,6 +1,6 @@
 import java.time.LocalDate;
 
-class LogEntry {
+public class LogEntry {
 	public enum EntryType {
 		DESTINATION,
 		FUEL,
