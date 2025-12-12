@@ -9,4 +9,8 @@ class ServiceEntry extends LogEntry {
 		REPAIR;
 	}
 	protected HashSet<ServiceType> services;
+	private static final EntryType TYPE = EntryType.SERVICE;
+	public ServiceEntry(localDate entryDate) {
+		super(TYPE, entryDate);
+	}
 }
