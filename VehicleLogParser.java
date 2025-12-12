@@ -111,6 +111,9 @@ class VehicleLogParser {
 		}
 		return true;
 	}
+	public static logEntry parseLine(LogEntry.EntryType type, String line) throws CustomException? {
+
+	}
 	public static boolean parseLog(String path) {
 		Pattern datePattern = Pattern.compile("^(\\d{1,2}[./-]\\d{1,2}[./-](?:\\d{4})).*");
 		Matcher m;
@@ -167,19 +170,32 @@ class VehicleLogParser {
 								scores.merge(typeMap.get(word), 1, Integer::sum);
 							}
 						}
-						//for(LogEntry.EntryType type : LogEntry.EntryType.values()) {
-						//	System.out.println(scores.get(type));
-						//}
-						int maxValue = Collections.max(scores.values());
-						List<LogEntry.EntryType> bestKeys = scores.entrySet().stream()
-							.filter(e -> e.getValue() == maxValue)
-							.map(Map.Entry::getKey)
-							.collect(Collectors.toList());
-						System.out.println(bestKeys); // All keys with the highest value
-						if(bestKeys.size() > 1) {
-							//Tie! Remove loosers!
+						while(scores.size()>0) {
+							int maxValue = Collections.max(scores.values());
+							List<LogEntry.EntryType> bestKeys = scores.entrySet().stream()
+								.filter(e -> e.getValue() == maxValue)
+								.map(Map.Entry::getKey)
+								.collect(Collectors.toList());
+							for(LogEntry.EntryType key : bestKeys) { // Here we remove the best keys in case we must loop again to next best options
+								scores.remove(key); // Remove for next loop to go to next best options if still no parse
+							}
+							//HERE WE MUST LOOP THROUGH BESTKEYS IN PRIORITY ORDER ATTEMPTINT TO PARSE!!!!
+							for(LogEntry.EntryType type : LogEntry.TypePriority) {
+								if(bestKeys.contains(type)) {
+									// Attempt to parse!
+									try {
+										parseLine(type,line) // Use generic here
+										scores.clear();
+										break;
+									} catch ( Custom Exception? ) {
+										//
+									}
+								}
+							}
+							// IF PARSING WORKS THEN BREAK HERE OTHERWISE CONTINUE AND LOOP!
+							// IE: parse, if works set lineParsed = true, then set parseOption to false or break to exit loop.
+							
 						}
-
 						if(lineParsed == false) {
 							System.err.println("Unable to parse line: " + line);
 						}
