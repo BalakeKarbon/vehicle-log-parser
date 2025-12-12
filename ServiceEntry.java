@@ -1,17 +1,19 @@
 import java.util.HashSet;
 import java.time.LocalDate;
 
-class ServiceEntry extends LogEntry {
+public class ServiceEntry extends LogEntry {
 	protected String description;
-	protected enum ServiceType {
-		OILCHANGE,
-		COOLANTCHANGE,
+	public enum ServiceType {
+		OIL,
+		COOLANT,
 		GREASE,
 		REPAIR;
 	}
 	protected HashSet<ServiceType> services;
 	private static final EntryType TYPE = EntryType.SERVICE;
-	public ServiceEntry(LocalDate entryDate) {
+	public ServiceEntry(LocalDate entryDate, HashSet<ServiceType> services,String description) {
 		super(TYPE, entryDate);
+		this.services = services;
+		this.description = description;
 	}
 }

@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -35,7 +36,7 @@ class VehicleLogParser {
 	// Do we support complex patterns???? wb regex? (yes)
 	public static Map<String, LogEntry.EntryType> typeMap;
 	public static Map<String, LogDestination> locationMap;
-	public static List<LogEntry> VehicleLog = new ArrayList<>();
+	public static List<LogEntry> vehicleLog = new ArrayList<>();
 	/*
 	Keyfile Notess:
 	So the top 4 lines go:
@@ -126,7 +127,8 @@ class VehicleLogParser {
 	//}
 	public static boolean parseLog(String path) {
 		Pattern datePattern = Pattern.compile("^(\\d{1,2}[./-]\\d{1,2}[./-](?:\\d{4})).*");
-		Pattern fuelPattern = Pattern.compile("(\\$(\\d+(?:\\.\\d+)?)|(\\d+(?:\\.\\d+)?) gal).*(\\$(\\d+(?:\\.\\d+)?)|(\\d+(?:\\.\\d+)?) gal)");
+		Pattern fuelPattern = Pattern.compile("(\\$\\d+(?:\\.\\d+)?)|(\\d+(?:\\.\\d+)?\\s*gal)");
+		Pattern odometerPattern = Pattern.compile("\\d{4,}(?:\\.\\d+)?");
 		Matcher m;
 		String dateParts[];
 		int month,day,year;
@@ -147,7 +149,7 @@ class VehicleLogParser {
 						year = Integer.parseInt(dateParts[2]);
 						currentDate = LocalDate.of(year, month, day);
 						// We have decided to go back and fix dates later.
-						System.out.println("Parsing "+currentDate+"...");
+						//System.out.println("Parsing "+currentDate+"...");
 						//System.out.println(line);
 
 					} catch (NumberFormatException e) {
@@ -202,26 +204,84 @@ class VehicleLogParser {
 								m = fuelPattern.matcher(line);
 								float cost = 0;
 								float volume = 0;
+								LogDestination destination = null;
 								while(m.find()) {
 									if(m.group().contains("gal")) {
 										volume = Float.parseFloat(m.group().replace(" gal", ""));
 									} else {
 										cost = Float.parseFloat(m.group().replace("$", ""));
 									}
-									System.out.println(m.group());
+									//System.out.println(m.group());
+								}
+								if(volume != 0 && cost != 0) {
+									for(String word : line.split(" ")) {
+										if((destination = locationMap.get(word))!=null) {
+											break;	
+										}	
+									}
+									if(destination != null) {
+										vehicleLog.add(new FuelEntry(currentDate, destination, cost, volume));
+										// Print output here maybe.
+										lineParsed = true;
+										break;
+									}
 								}
 							}
 							if(bestKeys.contains(LogEntry.EntryType.DESTINATION)) { // We dont need !lineParsed && here because this is just for priority checking time save
 								// Attempt to parse DESTINATION
 								// Potentially another scoring system for locations???
+								LogDestination destination = null;
+								for(String word : line.split(" ")) {
+									if((destination = locationMap.get(word))!=null) {
+										break;	
+									}	
+								}
+								if(destination != null) {
+									vehicleLog.add(new DestinationEntry(currentDate, destination));
+									// Print output here maybe.
+									lineParsed = true;
+									break;
+								}
 							}
 							if (bestKeys.contains(LogEntry.EntryType.SERVICE)) {
 								// Attempt to parse SERVICE
 								// Determine what services were perfomed
+								// HERE
+								HashSet<ServiceEntry.ServiceType> services = new HashSet<>();
+								if(line.toLowerCase().contains("oil")) {
+									services.add(ServiceEntry.ServiceType.OIL);
+									lineParsed=true;
+								}
+								if(line.toLowerCase().contains("coolant")) {
+									services.add(ServiceEntry.ServiceType.COOLANT);
+									lineParsed=true;
+								}
+								if(line.toLowerCase().contains("grease")) {
+									services.add(ServiceEntry.ServiceType.GREASE);
+									lineParsed=true;
+								}
+								if(line.toLowerCase().contains("repair") || line.toLowerCase().contains("replace")) {
+									services.add(ServiceEntry.ServiceType.REPAIR);
+									lineParsed=true;
+								}
+								if(lineParsed) {
+									m = odometerPattern.matcher(line);
+									if(m.find()) {
+										vehicleLog.add(new OdometerEntry(currentDate,Float.parseFloat(m.group())));
+									}
+									vehicleLog.add(new ServiceEntry(currentDate, services, line));
+									break;
+								}
 							}
 							if (bestKeys.contains(LogEntry.EntryType.ODOMETER)) {
 								// Attempt to parse ODOMETER
 								// Find long number
+								m = odometerPattern.matcher(line);
+								if(m.find()) {
+									vehicleLog.add(new OdometerEntry(currentDate,Float.parseFloat(m.group())));
+									lineParsed = true;
+									break;
+								}
 							}
 							//for(LogEntry.EntryType type : LogEntry.TypePriority) {
 							//	if(bestKeys.contains(type)) {

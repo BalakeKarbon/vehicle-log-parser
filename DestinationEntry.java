@@ -1,9 +1,10 @@
 import java.time.LocalDate;
 
-class DestinationEntry extends LogEntry {
+public class DestinationEntry extends LogEntry {
 	private static final EntryType TYPE = EntryType.DESTINATION;
 	protected LogDestination destination;
-	public DestinationEntry(LocalDate entryDate) {
+	public DestinationEntry(LocalDate entryDate, LogDestination destination) {
 		super(TYPE,entryDate);
+		this.destination = destination;
 	}
 }
