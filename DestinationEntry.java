@@ -7,4 +7,7 @@ public class DestinationEntry extends LogEntry {
 		super(TYPE,entryDate);
 		this.destination = destination;
 	}
+	public LogDestination getDestination() {
+		return this.destination;
+	}
 }

@@ -16,4 +16,10 @@ public class ServiceEntry extends LogEntry {
 		this.services = services;
 		this.description = description;
 	}
+	public HashSet<ServiceType> getServices() {
+		return this.services;
+	}
+	public String getDescription() {
+		return this.description;
+	}
 }

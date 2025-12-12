@@ -5,5 +5,9 @@ public class OdometerEntry extends LogEntry {
 	private static final EntryType TYPE = EntryType.ODOMETER;
 	public OdometerEntry(LocalDate entryDate, float miles) {
 		super(TYPE,entryDate);
+		this.miles = miles;
+	}
+	public float getMiles() {
+		return this.miles;
 	}
 }

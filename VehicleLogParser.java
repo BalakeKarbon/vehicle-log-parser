@@ -12,7 +12,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
-//import java.io.PrintWriter;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
@@ -83,10 +84,10 @@ class VehicleLogParser {
 							break;
 						default:
 							if(words.length >= 2) {
+								String title = null;
+								String description = null;
+								List<String> keys = new ArrayList<>();
 								for(int wordIndex = 0;wordIndex<words.length;wordIndex++) {
-									String title = null;
-									String description = null;
-									List<String> keys = new ArrayList<>();
 									switch(wordIndex) {
 										case 0:
 											title = words[wordIndex];
@@ -101,6 +102,7 @@ class VehicleLogParser {
 									LogDestination newDestination = new LogDestination(title,description);
 									for(String key : keys) {
 										locationMap.put(key, newDestination);
+										//System.out.println(key+": "+title);
 									}
 								}
 							} else {
@@ -125,10 +127,39 @@ class VehicleLogParser {
 	//public static logEntry parseLine(LogEntry.EntryType type, String line) throws CustomException? {
 
 	//}
+	public static <T extends LogEntry> String entryToCSV(T entry) {
+		String csvString = entry.getDate().toString()+","+entry.getType().toString();
+		if(entry instanceof DestinationEntry d) {
+			csvString+=","+d.getDestination().title+","+d.getDestination().description;
+		} else if (entry instanceof FuelEntry f) {
+			csvString+=","+f.getDestination().title+","+f.getDestination().description+","+Float.toString(f.getCost())+","+Float.toString(f.getVolume());
+		} else if (entry instanceof ServiceEntry s) {
+			csvString+=",";
+			for(ServiceEntry.ServiceType type : s.getServices()) {
+				csvString+=type.toString()+",";
+			}
+			csvString+=s.getDescription();
+		} else if (entry instanceof OdometerEntry o) {
+			csvString+=","+Float.toString(o.getMiles());
+		}
+		return csvString;
+	}
+	public static boolean writeToCSV(String path) {
+		try (PrintWriter writer = new PrintWriter(new FileWriter(path))) {
+			for(LogEntry entry : vehicleLog) {
+				writer.println(entryToCSV(entry));
+			}
+		return true;
+
+		} catch (IOException e) {
+			System.err.println("Error writing CSV: " + e);
+			return false;
+		}
+	}
 	public static boolean parseLog(String path) {
 		Pattern datePattern = Pattern.compile("^(\\d{1,2}[./-]\\d{1,2}[./-](?:\\d{4})).*");
 		Pattern fuelPattern = Pattern.compile("(\\$\\d+(?:\\.\\d+)?)|(\\d+(?:\\.\\d+)?\\s*gal)");
-		Pattern odometerPattern = Pattern.compile("\\d{4,}(?:\\.\\d+)?");
+		Pattern odometerPattern = Pattern.compile("\\b\\d{4,}(\\.\\d+)?\\b");
 		Matcher m;
 		String dateParts[];
 		int month,day,year;
@@ -206,10 +237,13 @@ class VehicleLogParser {
 								float volume = 0;
 								LogDestination destination = null;
 								while(m.find()) {
+									//System.out.println(m.group());
 									if(m.group().contains("gal")) {
 										volume = Float.parseFloat(m.group().replace(" gal", ""));
+										//System.out.println(volume);
 									} else {
 										cost = Float.parseFloat(m.group().replace("$", ""));
+										//System.out.println(cost);
 									}
 									//System.out.println(m.group());
 								}
@@ -278,6 +312,7 @@ class VehicleLogParser {
 								// Find long number
 								m = odometerPattern.matcher(line);
 								if(m.find()) {
+									//System.out.println(Float.toString(Float.parseFloat(m.group())));
 									vehicleLog.add(new OdometerEntry(currentDate,Float.parseFloat(m.group())));
 									lineParsed = true;
 									break;
@@ -325,6 +360,7 @@ class VehicleLogParser {
 		String logFilePath, keyFilePath, outputFilePath;
 		boolean keyValidated = false;
 		boolean logParsed = false;
+		boolean outputWrote = false;
 		Scanner scnr = new Scanner(System.in);
 		if(args.length >= 1) {
 			keyFilePath = args[0];
@@ -339,13 +375,19 @@ class VehicleLogParser {
 			logFilePath = args[1];
 			logParsed = parseLog(logFilePath);
 		}
-		if(args.length >= 3) {
-			outputFilePath = args[2];
-		}
 		while(!logParsed) {
 			System.out.print("Enter Log File Path: ");
 			logFilePath = scnr.nextLine();
 			logParsed = parseLog(logFilePath);
+		}
+		if(args.length >= 3) {
+			outputFilePath = args[2];
+			outputWrote = writeToCSV(outputFilePath);
+		}
+		if(!outputWrote) {
+			System.out.print("Enter Output File Path: ");
+			outputFilePath = scnr.nextLine();
+			outputWrote = writeToCSV(outputFilePath);
 		}
 		// Here we need to first get our key loaded properly, then we can attempt to parse the log file. If this succeeds we can store it in some fashion.
 		// What sort of structure do we want for our key file? CSV?

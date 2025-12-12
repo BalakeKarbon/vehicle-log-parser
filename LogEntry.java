@@ -8,19 +8,19 @@ public class LogEntry {
 		ODOMETER;
 	}
 	//public static final EntryType TypePriority[] = {EntryType.DESTINATION,EntryType.FUEL,EntryType.SERVICE,EntryType.ODOMETER};
-	protected LocalDate eventDate;
+	protected LocalDate entryDate;
 	public final EntryType type;
-	public LogEntry(EntryType type, LocalDate eventDate) { // If we dont ever use this make it protected.
+	public LogEntry(EntryType type, LocalDate entryDate) { // If we dont ever use this make it protected.
 		this.type = type;
-		this.eventDate = eventDate;
+		this.entryDate = entryDate;
 	}
 	public EntryType getType() {
 		return this.type;
 	}
 	public LocalDate getDate() {
-		return this.eventDate;
+		return this.entryDate;
 	}
-	public void setDate(LocalDate eventDate) {
-		this.eventDate = eventDate;
+	public void setDate(LocalDate entryDate) {
+		this.entryDate = entryDate;
 	}
 }

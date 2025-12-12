@@ -10,4 +10,13 @@ public class FuelEntry extends LogEntry {
 		this.volume = volume;
 		this.destination = destination;
 	}
+	public float getCost() {
+		return this.cost;
+	}
+	public float getVolume() {
+		return this.volume;
+	}
+	public LogDestination getDestination() {
+		return this.destination;
+	}
 }
