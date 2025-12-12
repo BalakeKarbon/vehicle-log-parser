@@ -126,6 +126,7 @@ class VehicleLogParser {
 	//}
 	public static boolean parseLog(String path) {
 		Pattern datePattern = Pattern.compile("^(\\d{1,2}[./-]\\d{1,2}[./-](?:\\d{4})).*");
+		Pattern fuelPattern = Pattern.compile("(\\$(\\d+(?:\\.\\d+)?)|(\\d+(?:\\.\\d+)?) gal).*(\\$(\\d+(?:\\.\\d+)?)|(\\d+(?:\\.\\d+)?) gal)");
 		Matcher m;
 		String dateParts[];
 		int month,day,year;
@@ -147,6 +148,7 @@ class VehicleLogParser {
 						currentDate = LocalDate.of(year, month, day);
 						// We have decided to go back and fix dates later.
 						System.out.println("Parsing "+currentDate+"...");
+						//System.out.println(line);
 
 					} catch (NumberFormatException e) {
 						System.out.println("Cannot parse date for: " + line);
@@ -193,19 +195,31 @@ class VehicleLogParser {
 							}
 							//HERE WE MUST LOOP THROUGH BESTKEYS IN PRIORITY ORDER ATTEMPTINT TO PARSE!!!!
 							// Attempt to parse!
+								// If parsed correctly we break!
+							if (bestKeys.contains(LogEntry.EntryType.FUEL)) {
+								// Attempt to parse FUEL
+								// Find price and volume numbers plus station location?
+								m = fuelPattern.matcher(line);
+								float cost = 0;
+								float volume = 0;
+								while(m.find()) {
+									if(m.group().contains("gal")) {
+										volume = Float.parseFloat(m.group().replace(" gal", ""));
+									} else {
+										cost = Float.parseFloat(m.group().replace("$", ""));
+									}
+									System.out.println(m.group());
+								}
+							}
 							if(bestKeys.contains(LogEntry.EntryType.DESTINATION)) { // We dont need !lineParsed && here because this is just for priority checking time save
 								// Attempt to parse DESTINATION
 								// Potentially another scoring system for locations???
 							}
-							if (!lineParsed && bestKeys.contains(LogEntry.EntryType.FUEL)) {
-								// Attempt to parse FUEL
-								// Find price and volume numbers plus station location?
-							}
-							if (!lineParsed && bestKeys.contains(LogEntry.EntryType.SERVICE)) {
+							if (bestKeys.contains(LogEntry.EntryType.SERVICE)) {
 								// Attempt to parse SERVICE
 								// Determine what services were perfomed
 							}
-							if (!lineParsed && bestKeys.contains(LogEntry.EntryType.ODOMETER)) {
+							if (bestKeys.contains(LogEntry.EntryType.ODOMETER)) {
 								// Attempt to parse ODOMETER
 								// Find long number
 							}
