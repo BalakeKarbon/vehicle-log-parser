@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.stream.Stream;
 //import java.io.PrintWriter;
+import java.util.Collections;
 import java.util.stream.Collectors;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
@@ -41,56 +42,68 @@ class VehicleLogParser {
 			String words[];
 			typeMap = new HashMap<>();
 			locationMap = new HashMap<>();
-			for(int lineIndex = 0;lineIndex<lines.size();lineIndex++) {
-				words = lines.get(lineIndex).split(",");
-				switch(lineIndex) {
-					case 0:
-						// Destination
-						for(String word : words) {
-							typeMap.put(word, LogEntry.EntryType.DESTINATION);
-						}
-						break;
-					case 1:
-						// Fuel
-						for(String word : words) {
-							typeMap.put(word, LogEntry.EntryType.FUEL);
-						}
-						break;
-					case 2:
-						// Service
-						for(String word : words) {
-							typeMap.put(word, LogEntry.EntryType.SERVICE);
-						}
-						break;
-					case 3:
-						// Odometer
-						for(String word : words) {
-							typeMap.put(word, LogEntry.EntryType.ODOMETER);
-						}
-						break;
-					default:
-						for(int wordIndex = 0;wordIndex<words.length;wordIndex++) {
-							String title = null;
-							String description = null;
-							List<String> keys = new ArrayList<>();
-							switch(wordIndex) {
-								case 0:
-									title = words[wordIndex];
-									break;
-								case 1:
-									description = words[wordIndex];
-									break;
-								default:
-									keys.add(words[wordIndex]);
-									break;
+			if(lines.size() >= 4) {
+				for(int lineIndex = 0;lineIndex<lines.size();lineIndex++) {
+					words = lines.get(lineIndex).split(",");
+					switch(lineIndex) {
+						case 0:
+							// Destination
+							for(String word : words) {
+								typeMap.put(word, LogEntry.EntryType.DESTINATION);
 							}
-							LogDestination newDestination = new LogDestination(title,description);
-							for(String key : keys) {
-								locationMap.put(key, newDestination);
+							break;
+						case 1:
+							// Fuel
+							for(String word : words) {
+								typeMap.put(word, LogEntry.EntryType.FUEL);
 							}
-						}
-						break;
+							break;
+						case 2:
+							// Service
+							for(String word : words) {
+								typeMap.put(word, LogEntry.EntryType.SERVICE);
+							}
+							break;
+						case 3:
+							// Odometer
+							for(String word : words) {
+								typeMap.put(word, LogEntry.EntryType.ODOMETER);
+							}
+							break;
+						default:
+							if(words.length >= 2) {
+								for(int wordIndex = 0;wordIndex<words.length;wordIndex++) {
+									String title = null;
+									String description = null;
+									List<String> keys = new ArrayList<>();
+									switch(wordIndex) {
+										case 0:
+											title = words[wordIndex];
+											break;
+										case 1:
+											description = words[wordIndex];
+											break;
+										default:
+											keys.add(words[wordIndex]);
+											break;
+									}
+									LogDestination newDestination = new LogDestination(title,description);
+									for(String key : keys) {
+										locationMap.put(key, newDestination);
+									}
+								}
+							} else {
+								// Error not enough descriptors for location in csv!
+								System.err.println("Error parsing location descriptor for keyfile: " + lines.get(lineIndex));
+								return false;
+							}
+							break;
+					}
 				}
+			} else {
+				// Error CSV not enough lines
+				System.err.println("Error csv file not enough information or wrong structure.");
+				return false;
 			}
 		} catch (IOException e) {
 			System.err.println("Error reading file: " + e.getMessage());
@@ -102,7 +115,8 @@ class VehicleLogParser {
 		Pattern datePattern = Pattern.compile("^(\\d{1,2}[./-]\\d{1,2}[./-](?:\\d{4})).*");
 		Matcher m;
 		String dateParts[];
-		int month,day,year,destinationScore,fuelScore,serviceScore,odometerScore;
+		int month,day,year;
+		Map<LogEntry.EntryType, Integer> scores = new HashMap<>();
 		LocalDate currentDate = null;
 		boolean lineParsed;
 		try (Stream<String> stream = Files.lines(Paths.get(path))) {
@@ -135,19 +149,40 @@ class VehicleLogParser {
 					//} else {
 					//	currentDate = LocalDate.of(year, month, day);
 					//}
-				}
-				if(currentDate != null) {
-					lineParsed = false;
-					destinationScore = 0;
-					fuelScore = 0;
-					serviceScore = 0;
-					odometerScore = 0;
-					// Go throuhg each word in the line and if it has a majority character match with anything in our key file then tally it for that category, majority catigory wins.
-					for(String word : line.split(" ")) {
+				} else {
+					if(currentDate != null) {
+						for(LogEntry.EntryType type : LogEntry.EntryType.values()) { // Advanced loop through an enum wow
+							if(type == LogEntry.EntryType.DESTINATION) {
+								scores.put(type, 1); // Destination gets a bias as we want that to be default
+							} else {
+								scores.put(type, 0); // Zero out all of our types. Oo automoxing
+							}
+						}
+						lineParsed = false;
+						// I use 4 integers for the scores instead of a HashMap because it makes me sleep better. I know we have all the ram in the world but still it tastes bad to allocate HashMap space for 4 integers just to make key-value ease.
+						//Actually I think I change my mind.
+						// Go throuhg each word in the line and if it has a majority character match with anything in our key file then tally it for that category, majority catigory wins.
+						for(String word : line.split(" ")) {
+							if(typeMap.containsKey(word)) {
+								scores.merge(typeMap.get(word), 1, Integer::sum);
+							}
+						}
+						//for(LogEntry.EntryType type : LogEntry.EntryType.values()) {
+						//	System.out.println(scores.get(type));
+						//}
+						int maxValue = Collections.max(scores.values());
+						List<LogEntry.EntryType> bestKeys = scores.entrySet().stream()
+							.filter(e -> e.getValue() == maxValue)
+							.map(Map.Entry::getKey)
+							.collect(Collectors.toList());
+						System.out.println(bestKeys); // All keys with the highest value
+						if(bestKeys.size() > 1) {
+							//Tie! Remove loosers!
+						}
 
-					}
-					if(lineParsed == false) {
-						System.out.println("Unable to parse line: " + line);
+						if(lineParsed == false) {
+							System.err.println("Unable to parse line: " + line);
+						}
 					}
 				}
 				
